@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gift Idea Architect</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF6F0; --warm: #F5EDE0; --blush: #E8C4A0;
+    --rust: #C4622D; --deep: #2C1810; --mid: #7A4A30;
+    --gold: #D4A853; --soft: #9B7B5A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--cream); font-family: 'DM Sans', sans-serif; color: var(--deep); min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: radial-gradient(ellipse at 20% 50%, rgba(196,98,45,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(212,168,83,0.09) 0%, transparent 50%);
+  }
+  .container { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; padding: 56px 20px 80px; }
+  header { text-align: center; margin-bottom: 44px; animation: fadeDown 0.7s ease both; }
+  .eyebrow { font-size: 11px; letter-spacing: .25em; text-transform: uppercase; color: var(--rust); font-weight: 500; margin-bottom: 10px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.1; margin-bottom: 12px; }
+  h1 em { color: var(--rust); font-style: italic; }
+  .subtitle { font-size: 15px; color: var(--soft); font-weight: 300; line-height: 1.6; }
+  .form-card {
+    background: white; border-radius: 20px; padding: 38px 36px;
+    box-shadow: 0 4px 40px rgba(44,24,16,0.08); border: 1px solid rgba(232,196,160,0.4);
+    animation: fadeUp 0.7s 0.15s ease both; margin-bottom: 36px;
+  }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .field.full { grid-column: 1/-1; }
+  label { font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--mid); font-weight: 500; }
+  input, textarea {
+    background: var(--cream); border: 1.5px solid var(--blush); border-radius: 10px;
+    padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--deep);
+    transition: border-color .2s, box-shadow .2s; outline: none; width: 100%;
+  }
+  input:focus, textarea:focus { border-color: var(--rust); box-shadow: 0 0 0 3px rgba(196,98,45,0.1); }
+  textarea { resize: none; height: 88px; line-height: 1.5; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 2px; }
+  .chip {
+    padding: 6px 13px; border-radius: 100px; border: 1.5px solid var(--blush);
+    font-size: 13px; cursor: pointer; transition: all .15s; color: var(--mid);
+    background: transparent; font-family: 'DM Sans', sans-serif;
+  }
+  .chip:hover { border-color: var(--rust); color: var(--rust); }
+  .chip.active { background: var(--rust); border-color: var(--rust); color: white; }
+  .btn-generate {
+    width: 100%; padding: 15px; background: var(--deep); color: var(--cream);
+    border: none; border-radius: 12px; font-family: 'Playfair Display', serif;
+    font-size: 18px; cursor: pointer; transition: all .2s; margin-top: 26px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    position: relative; overflow: hidden;
+  }
+  .btn-generate::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--rust), var(--mid)); opacity: 0; transition: opacity .3s;
+  }
+  .btn-generate:hover::before { opacity: 1; }
+  .btn-generate:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(44,24,16,0.2); }
+  .btn-generate span { position: relative; z-index: 1; }
+  .error-box {
+    background: #FEF2F2; border: 1px solid #FECACA; border-radius: 10px;
+    padding: 12px 16px; color: #991B1B; font-size: 13px; margin-top: 12px; display: none;
+  }
+  .loader { display: none; text-align: center; padding: 56px 0; }
+  .dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rust); animation: bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay: .2s; }
+  .dot:nth-child(3) { animation-delay: .4s; }
+  .loader p { font-family: 'Playfair Display', serif; font-style: italic; color: var(--soft); font-size: 16px; }
+  .results { display: none; }
+  .results-header { text-align: center; margin-bottom: 28px; }
+  .results-header h2 { font-family: 'Playfair Display', serif; font-size: 1.9rem; color: var(--deep); }
+  .results-header p { color: var(--soft); font-size: 14px; margin-top: 6px; }
+  .gift-card {
+    background: white; border-radius: 16px; padding: 26px 28px; margin-bottom: 14px;
+    border: 1px solid rgba(232,196,160,0.5); box-shadow: 0 2px 16px rgba(44,24,16,0.05);
+    display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start;
+    opacity: 0; transform: translateY(16px); transition: opacity .4s, transform .4s;
+  }
+  .gift-card.show { opacity: 1; transform: translateY(0); }
+  .gift-num {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--rust), var(--gold));
+    color: white; display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 700; flex-shrink: 0;
+  }
+  .gift-body h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--deep); margin-bottom: 6px; }
+  .gift-body p { font-size: 14px; color: var(--soft); line-height: 1.65; }
+  .gift-tags { display: flex; gap: 9px; margin-top: 11px; flex-wrap: wrap; }
+  .tag { font-size: 11px; padding: 3px 10px; border-radius: 100px; font-weight: 500; }
+  .tag-price { background: rgba(196,98,45,0.1); color: var(--rust); }
+  .tag-why { background: var(--warm); color: var(--mid); }
+  .btn-reset {
+    display: block; margin: 30px auto 0; padding: 10px 26px;
+    background: transparent; border: 1.5px solid var(--blush); border-radius: 100px;
+    font-size: 14px; color: var(--mid); cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+  }
+  .btn-reset:hover { border-color: var(--rust); color: var(--rust); }
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:translateY(0); } }
+  @keyframes bounce   { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-10px)} }
+  @media(max-width:520px) {
+    .field-row { grid-template-columns: 1fr; }
+    .form-card { padding: 26px 18px; }
+    .gift-card { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="eyebrow">&#10022; Thoughtful Gifting</div>
+    <h1>The Gift Idea <em>Architect</em></h1>
+    <p class="subtitle">Tell us about your person &amp; budget.<br>We'll craft five perfectly considered suggestions.</p>
+  </header>
+
+  <div class="form-card" id="formCard">
+    <div class="field-row">
+      <div class="field">
+        <label>Their Age</label>
+        <input type="number" id="age" placeholder="e.g. 32" min="1" max="120">
+      </div>
+      <div class="field">
+        <label>Your Budget (USD)</label>
+        <input type="number" id="budget" placeholder="e.g. 100" min="1">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field full">
+        <label>Their Hobbies &amp; Interests</label>
+        <textarea id="hobbies" placeholder="e.g. hiking, coffee, photography, reading sci-fi&#x2026;"></textarea>
+      </div>
+    </div>
+    <div class="field">
+      <label>Occasion</label>
+      <div class="chips" id="chips">
+        <button class="chip active" data-val="Birthday">&#127874; Birthday</button>
+        <button class="chip" data-val="Holiday">&#127876; Holiday</button>
+        <button class="chip" data-val="Anniversary">&#128141; Anniversary</button>
+        <button class="chip" data-val="Graduation">&#127891; Graduation</button>
+        <button class="chip" data-val="Just Because">&#128155; Just Because</button>
+        <button class="chip" data-val="Baby Shower">&#127868; Baby Shower</button>
+        <button class="chip" data-val="Wedding">&#127800; Wedding</button>
+      </div>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+    <button class="btn-generate" onclick="generate()"><span>&#10022; Architect My Gift List</span></button>
+  </div>
+
+  <div class="loader" id="loader">
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <p>Curating thoughtful ideas&#x2026;</p>
+  </div>
+
+  <div class="results" id="results">
+    <div class="results-header">
+      <h2>Your Gift Shortlist</h2>
+      <p id="resultsMeta"></p>
+    </div>
+    <div id="giftList"></div>
+    <button class="btn-reset" onclick="reset()">&#8592; Start Over</button>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.chip').forEach(function(c) {
+  c.addEventListener('click', function() {
+    document.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('active'); });
+    c.classList.add('active');
+  });
+});
+
+function getOccasion() {
+  var a = document.querySelector('.chip.active');
+  return a ? a.dataset.val : 'Birthday';
+}
+
+var GIFTS = [
+  {kw:['hik','outdoor','camp','nature','trail','backpack'], name:'Hydro Flask Wide Mouth Water Bottle', description:'A premium insulated bottle that keeps drinks cold for 24 hours and hot for 12 — perfect for long trails and backcountry adventures. Comes in dozens of colors and is virtually indestructible. One of those gifts that gets used every single day.', price:45, why:'Built for the trail'},
+  {kw:['hik','outdoor','camp','nature','trail'], name:'Black Diamond Spot 400 Headlamp', description:'A compact 400-lumen headlamp with a red night-vision mode, waterproof casing, and 200-hour battery life. An essential that any outdoor lover will actually use constantly, from pre-dawn hikes to late-night camp cooking.', price:40, why:'Lights every adventure'},
+  {kw:['hik','outdoor','camp','backpack'], name:'REI Co-op Trailbreak 60 Backpack', description:'A fully-featured 60L hiking pack with adjustable suspension, hip-belt pockets, and a built-in rain cover — ideal for weekend wilderness trips. Thoughtful and practical for any serious hiker looking to upgrade their gear.', price:189, why:'For the serious hiker'},
+  {kw:['camp','outdoor','nature'], name:'Jetboil Flash Cooking System', description:'Boils a litre of water in just 100 seconds using a windproof, fuel-efficient burner that clips directly to the cup. Lightweight and compact enough to slip inside any pack — a game-changer for backcountry cooking.', price:105, why:'Hot meals anywhere'},
+  {kw:['hik','outdoor','trail','nature'], name:'AllTrails Pro Subscription (1 Year)', description:'Unlocks offline maps, turn-by-turn navigation, and detailed trail reviews for millions of trails worldwide. A gift that unlocks thousands of new adventures for the person who loves exploring on foot.', price:36, why:'Explore more trails'},
+  {kw:['coffee','cafe','espresso','brew','barista'], name:'Fellow Stagg EKG Electric Kettle', description:'A beautifully designed pour-over kettle with precision temperature control to the degree and a built-in brew stopwatch — a dream tool for coffee enthusiasts who care about craft. Sleek enough to be left on any countertop permanently.', price:165, why:"Brewer's best friend"},
+  {kw:['coffee','cafe','espresso'], name:'AeroPress Coffee Maker', description:'Loved by baristas and world travelers alike, the AeroPress brews rich, smooth coffee in under two minutes and is nearly unbreakable. Compact enough to take anywhere and endlessly customizable with different recipes and techniques.', price:36, why:'Coffee anywhere'},
+  {kw:['coffee','espresso','barista'], name:'1Zpresso JX Manual Burr Grinder', description:'A hand grinder that produces espresso-quality grind consistency rivaling electric grinders ten times its price. Built with premium steel burrs and a deeply satisfying, tactile grinding experience that coffee lovers adore.', price:90, why:'For the coffee purist'},
+  {kw:['coffee','tea','brew'], name:'Specialty Coffee Subscription (3 Months)', description:'A curated subscription delivering freshly roasted single-origin beans from award-winning small roasters every two weeks. Three months of caffeinated discovery spanning Ethiopian naturals to Guatemalan washed lots.', price:75, why:'A new roast every week'},
+  {kw:['tea','herbal','brew'], name:'Rare Tea Company Luxury Tea Collection', description:'A curated set of six rare loose-leaf teas sourced directly from small farms — from silver-tip white tea to smoky lapsang — packaged in elegant, reusable tins. A genuinely impressive gift for any dedicated tea lover.', price:55, why:'Tea elevated to art'},
+  {kw:['photo','camera','photograph','shoot','portrait','landscape'], name:'Peak Design Capture Clip', description:'A belt and strap clip that lets photographers carry their camera securely at the hip or on a shoulder strap, ready to grab in one second. Used by professional photographers and adventure athletes worldwide.', price:80, why:'Capture every moment'},
+  {kw:['photo','camera','photograph'], name:'Moment Wide Angle Lens for Smartphones', description:'A professional-quality 18mm wide-angle lens that clips onto any smartphone and dramatically transforms mobile photography with virtually no distortion. Optically excellent and paired with a beautiful protective case.', price:100, why:'Pro shots on any phone'},
+  {kw:['photo','camera','photograph','portrait'], name:'Adobe Creative Cloud Photography Plan (1 Year)', description:"Adobe's industry-standard Lightroom and Photoshop suite gives photographers full creative control over every image — from subtle color grading to advanced compositing. The gift of professional-grade post-processing.", price:120, why:'Edit like a pro'},
+  {kw:['photo','camera','polaroid','instant'], name:'Fujifilm Instax Mini 12 Camera', description:'The new Instax Mini 12 prints credit-card-sized photos instantly with improved automatic exposure and a selfie mirror for easy self-portraits. Joyful, tactile, and deeply satisfying to use at any gathering.', price:80, why:'Instant memories'},
+  {kw:['read','book','fiction','novel','literature','sci-fi','fantasy'], name:'Kindle Paperwhite (16GB)', description:"The best e-reader available — with a warm adjustable light, weeks of battery life, and IPX8 waterproofing it's perfect for reading anywhere. Holds thousands of books in a device thinner than a single paperback.", price:140, why:'A library in your pocket'},
+  {kw:['read','book','novel','fiction'], name:'Audible Premium Plus (3 Months)', description:'Three months of unlimited listening to thousands of audiobooks and podcasts — a wonderful way to turn commutes, workouts, and chores into story time. Includes one premium credit per month for the latest new releases.', price:45, why:'Stories on the go'},
+  {kw:['read','book','sci-fi','fantasy','literature'], name:'Book Subscription Box (1 Month)', description:'A themed mystery box packed with a new hardcover novel, bookish accessories, enamel pins, and art prints — delivered monthly. A delightful way to discover new favorites curated by passionate readers for passionate readers.', price:45, why:'A surprise every month'},
+  {kw:['music','guitar','piano','sing','instrument','band','concert','vinyl'], name:'Sony WH-1000XM5 Headphones', description:'The gold standard in noise-cancelling headphones — with 30-hour battery life, crystal-clear audio, and featherlight comfort. A genuinely transformative listening experience for anyone who loves music deeply.', price:280, why:'Sound perfected'},
+  {kw:['music','vinyl','record','album'], name:'Audio-Technica AT-LP120XUSB Turntable', description:'A direct-drive turntable with a built-in preamp and USB output for ripping vinyl to digital — beloved by DJs and home listening enthusiasts alike. A stunning way to rediscover a record collection.', price:149, why:'Vinyl the right way'},
+  {kw:['music','guitar','instrument','band'], name:'Fender Play Subscription (1 Year)', description:'A structured online guitar and bass learning platform used by millions of learners — with song-based lessons from beginner to advanced level. A year of guided practice for someone wanting to finally play their favorite songs.', price:100, why:'Play what you love'},
+  {kw:['game','gaming','video','gamer','rpg','console','pc','nintendo'], name:'Gaming Gift Card ($50)', description:'A universal gift for any gamer — lets them choose exactly the games, DLC, or in-game currency they actually want from the platform they love. No guesswork, maximum enjoyment, immediately usable.', price:50, why:'They choose the fun'},
+  {kw:['game','gaming','gamer','pc'], name:'SteelSeries Arctis Nova 3 Gaming Headset', description:'A comfortable over-ear gaming headset with crisp stereo audio, a retractable noise-cancelling microphone, and cross-platform compatibility with PC, PlayStation, Xbox, and Switch. A clear step up from built-in audio.', price:100, why:'Level up their audio'},
+  {kw:['game','board game','tabletop','strategy'], name:'Wingspan Board Game', description:'An award-winning, beautifully illustrated strategy board game about bird habitats that has charmed seasoned board gamers and casual players alike. Engrossing, calming, and stunning to look at on the table.', price:65, why:'Beautiful strategy'},
+  {kw:['cook','bake','food','kitchen','chef','recipe','cuisine'], name:'Misen Chef\'s Knife', description:"A high-carbon steel chef's knife with a blade geometry perfected for home cooks — sharp straight out of the box and engineered to stay that way. Heavier and better-balanced than knives costing three times as much.", price:85, why:"The knife they'll use daily"},
+  {kw:['cook','bake','food','kitchen','chef'], name:'MasterClass Annual Membership', description:'Learn from Gordon Ramsay, Thomas Keller, and more in cinematic step-by-step video lessons covering every cuisine and technique imaginable. A year of culinary inspiration and real skill-building for any food lover.', price:120, why:'Learn from the best'},
+  {kw:['cook','bake','pastry','bread','sourdough'], name:'Bread & Taylor Folding Proofer', description:"A collapsible proof box that creates the perfect warm, humid environment for bread and pastry doughs — the secret weapon of serious home bakers. Folds completely flat for easy storage between bakes.", price:130, why:'Baking transformed'},
+  {kw:['cook','food','wine','dine','restaurant'], name:'Local Cooking Class Experience', description:'An in-person cooking class in a chosen cuisine — Italian, Japanese, Thai — led by a professional chef in a hands-on kitchen environment. A memorable experience that teaches real skills and makes a wonderful shared outing.', price:120, why:'Memories and real skills'},
+  {kw:['fit','gym','workout','yoga','run','sport','health','wellness'], name:'Whoop 4.0 Fitness Tracker (6 months)', description:'A screenless wearable that continuously tracks recovery, strain, and sleep quality — providing actionable coaching that serious athletes use to optimize performance. Worn 24/7, trusted by professionals and Olympians.', price:179, why:'Train smarter'},
+  {kw:['yoga','meditat','wellness','mindful','pilates'], name:'Manduka PRO Yoga Mat', description:'The industry benchmark for yoga mats — dense, non-slip, and genuinely built to last a lifetime. At 6mm thick with a closed-cell surface that resists bacteria and odor, it is a real upgrade for any regular practitioner.', price:120, why:"The mat they'll keep forever"},
+  {kw:['run','marathon','trail run','jog','race'], name:'Garmin Forerunner 255 GPS Watch', description:'A GPS running watch with multi-band satellite accuracy, full training load metrics, and two weeks of battery life in smartwatch mode. Trusted by recreational runners and ultramarathoners alike for accuracy and durability.', price:350, why:'Every run, quantified'},
+  {kw:['wellness','spa','relax','self-care','massage','recover'], name:'Theragun Mini Percussive Massager', description:'A pocket-sized but genuinely powerful percussion massager that relieves muscle soreness and tension with three speed settings and a near-silent motor. Beloved by athletes, desk workers, and everyone in between.', price:150, why:'Recovery reimagined'},
+  {kw:['art','draw','paint','sketch','design','illustrat','craft'], name:'Procreate App for iPad', description:'The industry-standard digital illustration app for iPad — a single one-time purchase that professional illustrators use for everything from concept art to finished editorial illustration. Endlessly powerful and beautifully intuitive.', price:13, why:'A canvas without limits'},
+  {kw:['art','draw','sketch','pencil','watercolor'], name:'Moleskine Art Sketchbook + Staedtler Pencil Set', description:'A large hardcover sketchbook with thick acid-free paper paired with a professional 12-pencil set spanning 6B to 4H — a considered, complete gift for any sketcher or illustrator looking to work at a higher level.', price:50, why:'Fill every page'},
+  {kw:['art','paint','watercolor','acrylic','oil'], name:'Winsor & Newton Professional Watercolour Set', description:'A heritage paint brand used by professional watercolorists for two centuries — this 24-pan set covers every hue with extraordinary vibrancy and lightfastness. A meaningful upgrade from student-grade paints.', price:95, why:'Color that endures'},
+  {kw:['travel','adventure','wander','explore','backpack','trip','journey'], name:'Tortuga Travel Backpack 40L', description:'A carry-on-sized travel backpack that passes airline size restrictions while fitting up to two weeks of clothing, with a padded laptop sleeve and thoughtful organization throughout. The gold standard for one-bag travel.', price:299, why:'One bag, anywhere'},
+  {kw:['travel','adventure','explore','trip','journey'], name:'Lonely Planet Best in Travel Yearbook', description:"The annual guide to the world's top destinations, experiences, and hidden gems — beautifully illustrated and full of carefully curated inspiration for the next adventure. A wonderful complement to any trip planning session.", price:25, why:'Dream the next trip'},
+  {kw:['tech','gadget','computer','code','program','app','device','phone'], name:'Anker 65W USB-C GaN Charger (4-Port)', description:'A single compact charger that simultaneously powers a laptop, phone, tablet, and earbuds — effectively the last charger anyone needs to buy. Small enough to live permanently in a bag without taking up meaningful space.', price:40, why:'One charger for everything'},
+  {kw:['tech','gadget','phone','apple','iphone'], name:'Apple AirTag 4-Pack', description:'Four precision location trackers that attach to keys, bags, wallets, and luggage — using the vast Apple Find My network to pinpoint items anywhere in the world. Simple to set up and remarkably effective at preventing lost items.', price:99, why:'Never lose anything again'},
+  {kw:['tech','code','program','developer','software','engineer'], name:'GitHub Copilot Subscription (1 Year)', description:'An AI pair-programmer that autocompletes code, suggests entire functions, and explains errors in real time — integrated directly into VS Code and JetBrains IDEs. A meaningful and tangible productivity boost for any developer.', price:100, why:'Code at the speed of thought'},
+  {kw:['plant','garden','nature','grow','flower','herb','botanical'], name:'AeroGarden Harvest Indoor Herb Garden', description:'A countertop hydroponic system that grows fresh herbs — basil, mint, parsley, and more — year-round with an automated LED grow light and watering system. No soil, no mess, ready to harvest in just a few weeks.', price:100, why:'Fresh herbs year-round'},
+  {kw:['social','fun','party','game','friend','group','gather'], name:'Jackbox Party Pack (Digital Download)', description:'A collection of hilarious party games played on any TV with smartphones as controllers — no extra hardware or game controllers needed. Works brilliantly with any group from 3 to 8 players, in person or over video call.', price:30, why:'Instant party starter'},
+  {kw:[], name:'Amazon Gift Card', description:'A flexible gift card that lets them choose something they truly want from one of the largest catalogues on earth — delivered instantly by email or beautifully packaged. Thoughtful because it respects their own taste perfectly.', price:50, why:'They know best'},
+  {kw:[], name:'Uncommon Goods Curated Gift Box', description:'A beautifully curated gift box from Uncommon Goods featuring artisan-made products across food, lifestyle, and home categories. Every item is ethically sourced, genuinely distinctive, and thoughtfully chosen.', price:80, why:'Unexpected delight'},
+  {kw:[], name:'MasterClass Annual Membership', description:'Access to over 180 classes taught by world-class experts — Gordon Ramsay on cooking, Neil Gaiman on writing, Serena Williams on tennis. A gift that opens genuine doors to new skills, ideas, and passions.', price:120, why:'Learn from the best'},
+  {kw:[], name:'Experiences on Airbnb (Gift Card)', description:'An Airbnb Experiences gift card redeemable for thousands of unique local experiences worldwide — cooking classes, art workshops, guided tours, and more. A gift of memory rather than things.', price:100, why:'Gift an experience'},
+];
+
+function matchGifts(hobbiesRaw, budget) {
+  var h = hobbiesRaw.toLowerCase();
+  var b = parseInt(budget, 10);
+
+  var scored = GIFTS.map(function(g) {
+    var score = 0;
+    g.kw.forEach(function(k) { if (h.indexOf(k) !== -1) score += 10; });
+    var ratio = g.price / b;
+    if (ratio <= 1.0 && ratio >= 0.5) score += 5;
+    else if (ratio <= 1.1 && ratio >= 0.3) score += 2;
+    else if (ratio > 1.25) score -= 30;
+    return Object.assign({}, g, {score: score});
+  });
+
+  scored.sort(function(a, b) { return b.score - a.score; });
+
+  var seen = {};
+  var result = [];
+  for (var i = 0; i < scored.length; i++) {
+    if (result.length >= 5) break;
+    var g = scored[i];
+    if (seen[g.name]) continue;
+    if (g.price > b * 1.3) continue;
+    seen[g.name] = true;
+    result.push(g);
+  }
+
+  // Pad with universals if needed
+  for (var j = 0; j < GIFTS.length; j++) {
+    if (result.length >= 5) break;
+    var u = GIFTS[j];
+    if (u.kw.length === 0 && !seen[u.name]) {
+      seen[u.name] = true;
+      result.push(u);
+    }
+  }
+
+  return result.slice(0, 5).map(function(g) {
+    return {
+      name: g.name,
+      description: g.description,
+      estimatedPrice: g.price <= b ? '~$' + g.price : '~$' + g.price + ' (slightly above budget)',
+      whyItWorks: g.why
+    };
+  });
+}
+
+function generate() {
+  var age    = document.getElementById('age').value.trim();
+  var budget = document.getElementById('budget').value.trim();
+  var hobbies= document.getElementById('hobbies').value.trim();
+  var err    = document.getElementById('errorBox');
+  err.style.display = 'none';
+
+  if (!age || !budget || !hobbies) {
+    err.textContent = 'Please fill in all three fields before generating ideas.';
+    err.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('loader').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+
+  setTimeout(function() {
+    var gifts = matchGifts(hobbies, budget);
+    document.getElementById('loader').style.display = 'none';
+    renderResults(gifts, { age: age, budget: budget, occasion: getOccasion() });
+  }, 1400);
+}
+
+function renderResults(gifts, info) {
+  document.getElementById('resultsMeta').textContent =
+    info.occasion + ' ideas for a ' + info.age + '-year-old \u00b7 Budget: $' + info.budget;
+
+  var list = document.getElementById('giftList');
+  list.innerHTML = '';
+  gifts.forEach(function(g, i) {
+    var card = document.createElement('div');
+    card.className = 'gift-card';
+    card.innerHTML =
+      '<div class="gift-num">' + (i+1) + '</div>' +
+      '<div class="gift-body">' +
+        '<h3>' + g.name + '</h3>' +
+        '<p>' + g.description + '</p>' +
+        '<div class="gift-tags">' +
+          '<span class="tag tag-price">' + g.estimatedPrice + '</span>' +
+          '<span class="tag tag-why">' + g.whyItWorks + '</span>' +
+        '</div>' +
+      '</div>';
+    list.appendChild(card);
+    setTimeout(function(){ card.classList.add('show'); }, 90 * (i + 1));
+  });
+
+  document.getElementById('results').style.display = 'block';
+}
+
+function reset() {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('formCard').style.display = 'block';
+  ['age','budget','hobbies'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('active'); });
+  document.querySelector('.chip[data-val="Birthday"]').classList.add('active');
+}
+</script>
+</body>
+</html>
